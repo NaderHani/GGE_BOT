@@ -17,12 +17,20 @@ class UserSession:
         self.complete: bool = False
         self.step: int = 0
 
+    def clear_password(self):
+        """
+        FIX: the password sat in memory in plain text for the whole
+        session lifetime with nothing ever clearing it. Call this right
+        after GameClient has consumed it (inside complete_setup), so it
+        isn't sitting around longer than needed.
+        """
+        self.password = None
+
     def to_dict(self) -> Dict:
-        """Convert session to dictionary"""
+        """Convert session to dictionary (password intentionally excluded)"""
         return {
             "user_id": self.user_id,
             "username": self.username,
-            "password": self.password,
             "server": self.server,
             "options_settings": self.options_settings,
             "complete": self.complete,
@@ -44,7 +52,6 @@ class SessionManager:
         """Create a new session for a user"""
         if user_id in self.sessions:
             return self.sessions[user_id]
-
         session = UserSession(user_id)
         self.sessions[user_id] = session
         return session
@@ -54,8 +61,15 @@ class SessionManager:
         return self.sessions.get(user_id)
 
     def delete_session(self, user_id: int) -> bool:
-        """Delete a user's session"""
-        if user_id in self.sessions:
+        """Delete a user's session, disconnecting the game client first if present."""
+        session = self.sessions.get(user_id)
+        if session:
+            if session.game_client:
+                try:
+                    session.game_client.disconnect()
+                except Exception:
+                    pass
+            session.clear_password()
             del self.sessions[user_id]
             return True
         return False

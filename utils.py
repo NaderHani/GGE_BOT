@@ -1,44 +1,56 @@
 # utils.py
 # Helper functions
 
-from typing import Dict
-from config import DEFAULT_OPTIONS, DEFAULT_SERVER, GAME_SERVERS, SERVER_NAMES
+from typing import Dict, Tuple, List
+from config import (
+    DEFAULT_OPTIONS,
+    DEFAULT_SERVER,
+    GAME_SERVERS,
+    SERVER_NAMES,
+    OPTION_KEY_MAP,
+)
 
 
-def parse_options_input(input_text: str) -> Dict[str, bool]:
+def parse_options_input(input_text: str) -> Tuple[Dict[str, bool], List[str]]:
     """
-    Parse the options input from user
+    Parse the options input from user.
+
+    FIX: this now does a case-insensitive key match (old code required an
+    exact-case match like "UseCoin" and silently ignored "usecoin"/"USECOIN").
+    It also returns the list of keys it couldn't recognize so the caller can
+    warn the user instead of quietly dropping their input.
 
     Args:
         input_text: Raw input string from user
 
     Returns:
-        dict: Parsed options settings
+        (options, unknown_keys)
     """
     options = DEFAULT_OPTIONS.copy()
+    unknown_keys: List[str] = []
 
     if not input_text.strip():
-        return options
+        return options, unknown_keys
 
     items = input_text.split(",")
     for item in items:
         item = item.strip()
-        if ":" in item:
-            key, value = item.split(":", 1)
-            key = key.strip()
-            value = value.strip().lower() == "true"
+        if not item:
+            continue
+        if ":" not in item:
+            unknown_keys.append(item)
+            continue
 
-            mapping = {
-                "UseFeathers": "use_feathers",
-                "UseCoin": "use_coin",
-                "UpgradeStormForts": "upgrade_storm_forts",
-                "NobleThievesCastles": "noble_thieves_castles",
-            }
+        key, value = item.split(":", 1)
+        key_normalized = key.strip().lower().replace(" ", "").replace("_", "")
+        value = value.strip().lower() == "true"
 
-            if key in mapping:
-                options[mapping[key]] = value
+        if key_normalized in OPTION_KEY_MAP:
+            options[OPTION_KEY_MAP[key_normalized]] = value
+        else:
+            unknown_keys.append(key.strip())
 
-    return options
+    return options, unknown_keys
 
 
 def format_options_output(options: Dict[str, bool]) -> str:
@@ -73,7 +85,6 @@ def get_server_code(server_input: str) -> int:
         int: Server code (1, 2, 3, or 4)
     """
     server_input = server_input.strip()
-
     if not server_input:
         return DEFAULT_SERVER
 
