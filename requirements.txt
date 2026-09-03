@@ -1,0 +1,5 @@
+discord.py==2.3.2
+python-dotenv==1.0.0
+empire-core==0.2.1
+websocket-client>=1.6.0
+requests>=2.31.0

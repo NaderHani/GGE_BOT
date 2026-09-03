@@ -51,6 +51,27 @@ SERVER_NAMES = {
 # Server string mapping for WebSocket
 SERVER_STRINGS = {1: "en1", 2: "en2", 3: "us1", 4: "eu1"}
 
+# Per-server WebSocket URL and SmartFox zone (required for real socket traffic).
+# EG1 values are from captured browser traffic; others follow the same naming pattern.
+SERVER_CONFIG = {
+    1: {
+        "game_url": "wss://ep-live-mz-sa1-ae1-eg1-arab1-game.goodgamestudios.com/",
+        "zone": "EmpireEx_34",
+    },
+    2: {
+        "game_url": "wss://ep-live-eg2-game.goodgamestudios.com/",
+        "zone": "EmpireEx_34",
+    },
+    3: {
+        "game_url": "wss://ep-live-us1-game.goodgamestudios.com/",
+        "zone": "EmpireEx_21",
+    },
+    4: {
+        "game_url": "wss://ep-live-eu1-game.goodgamestudios.com/",
+        "zone": "EmpireEx_21",
+    },
+}
+
 # Default settings (Forts removed, replaced with Noble Thieves)
 DEFAULT_OPTIONS = {
     "use_feathers": True,

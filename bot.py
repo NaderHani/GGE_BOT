@@ -5,6 +5,14 @@ import discord
 from discord.ext import commands
 import logging
 import asyncio
+import sys
+
+# Windows consoles often default to cp1252; avoid crashing on emoji in prints.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from config import DISCORD_TOKEN, COMMAND_PREFIX, MESSAGE_TIMEOUT, DEFAULT_SERVER
 from game_client import GameClient, GameClientError
@@ -81,7 +89,6 @@ async def help_command(ctx):
         embed.add_field(name=cmd, value=desc, inline=False)
     embed.set_footer(text="Made for Goodgame Empire players ❤️")
     await ctx.send(embed=embed)
-
 
 # === COMMAND: !about ===
 @bot.command(name="about")
@@ -258,7 +265,7 @@ async def complete_setup(ctx, session):
             username=session.username, password=session.password, server=session.server
         )
 
-        connected = game_client.connect()
+        connected = await asyncio.to_thread(game_client.connect)
 
         # FIX: the password has done its job (handed to GameClient) —
         # drop it from the session immediately instead of keeping it
@@ -277,7 +284,7 @@ async def complete_setup(ctx, session):
             "server": session.server,
             "options": session.options_settings,
         }
-        response = game_client.setup_account(settings)
+        response = await asyncio.to_thread(game_client.setup_account, settings)
 
         if not response.get("success", False):
             await ctx.send(
@@ -296,7 +303,7 @@ async def complete_setup(ctx, session):
         status_line = (
             "🟢 Logged in"
             if response.get("logged_in")
-            else "🟡 Socket open — login handshake not implemented yet (see game_client.py TODOs)"
+            else "🟡 Connected — waiting for login confirmation"
         )
 
         embed = discord.Embed(
@@ -446,7 +453,7 @@ async def castle_command(ctx):
         await ctx.send("❌ **Please run `!setup` first!**")
         return
     try:
-        castle_info = session.game_client.get_castle_info()
+        castle_info = await asyncio.to_thread(session.game_client.get_castle_info)
     except GameClientError as e:
         await ctx.send(f"❌ {e}")
         return
@@ -465,7 +472,7 @@ async def resources_command(ctx):
         await ctx.send("❌ **Please run `!setup` first!**")
         return
     try:
-        resources = session.game_client.get_resources()
+        resources = await asyncio.to_thread(session.game_client.get_resources)
     except GameClientError as e:
         await ctx.send(f"❌ {e}")
         return
@@ -489,7 +496,9 @@ async def noble_command(ctx):
         await ctx.send("Run `!setup` again and enable it.")
         return
     try:
-        noble_castles = session.game_client.get_noble_thieves_castles()
+        noble_castles = await asyncio.to_thread(
+            session.game_client.get_noble_thieves_castles
+        )
     except GameClientError as e:
         await ctx.send(f"❌ {e}")
         return
